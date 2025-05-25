@@ -14,16 +14,13 @@ A simple web app to trim videos by selecting start and end times.
 - Node.js (Express)
 - FFmpeg
 
-## How to Run
+## How to Run This Project
 
-1. Install dependencies  
-   `npm install`
+1. Clone the repo or download ZIP
+2. Run `npm install` to install dependencies
+3. Run `node server.js` to start the server
+4. Open your browser and go to `http://localhost:3000`
 
-2. Start the server  
-   `node server.js`
-
-3. Open in browser  
-   Go to `http://localhost:3000`
 
 ## Note
 
