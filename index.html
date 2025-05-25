@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>🎬 Video Trimmer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            background-color: #fff;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #444;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        small {
+            display: block;
+            color: #777;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+
+        video {
+            margin: 15px 0;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .button-group button {
+            flex: 1;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .button-group button:hover {
+            background-color: #0056b3;
+        }
+
+        button[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #218838;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+        }
+
+        a {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>🎬 Trim Your Video</h2>
+
+        <form id="trimForm" enctype="multipart/form-data">
+            <label for="videoInput">Choose video:</label>
+            <input type="file" id="videoInput" name="video" accept="video/*,.mkv,.avi,.mov,.wmv,.flv,.webm" required />
+            <small>Supported formats: .mp4, .mkv, .avi, .mov, .wmv, .flv, .webm</small>
+
+            <video id="videoPreview" controls style="display: none;"></video>
+
+            <div class="button-group">
+                <button type="button" id="setStart">🎯 Set Start</button>
+                <button type="button" id="setEnd">🎯 Set End</button>
+            </div>
+
+            <label for="startTime">Start Time (hh:mm:ss):</label>
+            <input type="text" id="startTime" name="startTime" required />
+
+            <label for="endTime">End Time (hh:mm:ss):</label>
+            <input type="text" id="endTime" name="endTime" required />
+
+            <button type="submit">Trim Video</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('trimForm');
+        const resultDiv = document.getElementById('result');
+        const videoInput = document.getElementById('videoInput');
+        const videoPreview = document.getElementById('videoPreview');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const setStartBtn = document.getElementById('setStart');
+        const setEndBtn = document.getElementById('setEnd');
+
+        videoInput.addEventListener('change', () => {
+            const file = videoInput.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                videoPreview.src = url;
+                videoPreview.style.display = 'block';
+            }
+        });
+
+        function formatTime(seconds) {
+            return new Date(seconds * 1000).toISOString().substr(11, 8);
+        }
+
+        function hmsToSeconds(hms) {
+            const parts = hms.split(':').map(Number).reverse();
+            let seconds = 0;
+            if (parts[0]) seconds += parts[0];
+            if (parts[1]) seconds += parts[1] * 60;
+            if (parts[2]) seconds += parts[2] * 3600;
+            return seconds;
+        }
+
+        setStartBtn.addEventListener('click', () => {
+            startTimeInput.value = formatTime(Math.floor(videoPreview.currentTime));
+        });
+
+        setEndBtn.addEventListener('click', () => {
+            endTimeInput.value = formatTime(Math.floor(videoPreview.currentTime));
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            resultDiv.innerHTML = '⏳ Trimming... Please wait...';
+
+            const formData = new FormData();
+            formData.append("video", videoInput.files[0]);
+
+            const startSeconds = hmsToSeconds(startTimeInput.value);
+            const endSeconds = hmsToSeconds(endTimeInput.value);
+
+            formData.append("startTime", startSeconds);
+            formData.append("endTime", endSeconds);
+
+            try {
+                const res = await fetch('http://localhost:3000/trim', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await res.json();
+                console.log('Server response:', data);
+
+                if (data.trimmedVideo) {
+                    resultDiv.innerHTML = `
+            ✅ Trimmed successfully!<br>
+            <a href="${data.trimmedVideo}" download>📥 Download Trimmed Video</a>
+            <br><video controls src="${data.trimmedVideo}" width="400"></video>
+          `;
+                } else {
+                    resultDiv.textContent = '❌ Error trimming video.';
+                }
+            } catch (err) {
+                console.error(err);
+                resultDiv.textContent = '❌ Something went wrong.';
+            }
+        });
+    </script>
+</body>
+
+</html>
